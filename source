@@ -1,0 +1,159 @@
+-- ModuleScript: MoMo
+-- Stop Steeling File.
+local MoMo = {}
+
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+function MoMo:CreateWindow(config)
+	local ScreenGui = Instance.new("ScreenGui")
+	ScreenGui.Name = "MoMoUI"
+	ScreenGui.ResetOnSpawn = false
+	ScreenGui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+
+	local MainFrame = Instance.new("Frame")
+	MainFrame.Size = config.Size or UDim2.fromOffset(580, 460)
+	MainFrame.Position = UDim2.fromScale(0.5, 0.5)
+	MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+	MainFrame.BackgroundColor3 = config.Theme == "Dark" and Color3.fromRGB(30, 30, 30) or Color3.fromRGB(240, 240, 240)
+	MainFrame.BorderSizePixel = 0
+	MainFrame.Name = "MainFrame"
+	MainFrame.Parent = ScreenGui
+	MainFrame.ClipsDescendants = true
+	MainFrame.Active = true
+	MainFrame.Draggable = true
+
+	local Title = Instance.new("TextLabel")
+	Title.Text = config.Title or "MoMo UI"
+	Title.Size = UDim2.new(1, 0, 0, 40)
+	Title.BackgroundTransparency = 1
+	Title.TextColor3 = config.Theme == "Dark" and Color3.fromRGB(255,255,255) or Color3.fromRGB(0,0,0)
+	Title.Font = Enum.Font.GothamBold
+	Title.TextSize = 20
+	Title.Parent = MainFrame
+
+	local TabsContainer = Instance.new("Frame")
+	TabsContainer.Size = UDim2.new(0, config.TabWidth or 160, 1, -40)
+	TabsContainer.Position = UDim2.new(0, 0, 0, 40)
+	TabsContainer.BackgroundColor3 = config.Theme == "Dark" and Color3.fromRGB(45, 45, 45) or Color3.fromRGB(230, 230, 230)
+	TabsContainer.BorderSizePixel = 0
+	TabsContainer.Name = "Tabs"
+	TabsContainer.Parent = MainFrame
+
+	local PagesContainer = Instance.new("Frame")
+	PagesContainer.Size = UDim2.new(1, -TabsContainer.Size.X.Offset, 1, -40)
+	PagesContainer.Position = UDim2.new(0, TabsContainer.Size.X.Offset, 0, 40)
+	PagesContainer.BackgroundTransparency = 1
+	PagesContainer.Name = "Pages"
+	PagesContainer.Parent = MainFrame
+
+	local Options = {}
+
+	local function AddTab(tabConfig)
+		local TabButton = Instance.new("TextButton")
+		TabButton.Size = UDim2.new(1, 0, 0, 40)
+		TabButton.BackgroundTransparency = 1
+		TabButton.Text = tabConfig.Title or "Tab"
+		TabButton.Font = Enum.Font.Gotham
+		TabButton.TextSize = 16
+		TabButton.TextColor3 = config.Theme == "Dark" and Color3.fromRGB(200, 200, 200) or Color3.fromRGB(50, 50, 50)
+		TabButton.Parent = TabsContainer
+
+		local TabPage = Instance.new("ScrollingFrame")
+		TabPage.Size = UDim2.new(1, 0, 1, 0)
+		TabPage.CanvasSize = UDim2.new(0, 0, 0, 0)
+		TabPage.BackgroundTransparency = 1
+		TabPage.Visible = false
+		TabPage.Parent = PagesContainer
+		TabPage.ScrollBarThickness = 6
+		TabPage.Name = tabConfig.Title or "TabPage"
+
+		local UIListLayout = Instance.new("UIListLayout")
+		UIListLayout.Padding = UDim.new(0, 6)
+		UIListLayout.Parent = TabPage
+
+		TabButton.MouseButton1Click:Connect(function()
+			for _, page in pairs(PagesContainer:GetChildren()) do
+				if page:IsA("ScrollingFrame") then
+					page.Visible = false
+				end
+			end
+			TabPage.Visible = true
+		end)
+
+		local elements = {}
+
+		function elements:AddButton(buttonConfig)
+			local Btn = Instance.new("TextButton")
+			Btn.Size = UDim2.new(1, -10, 0, 40)
+			Btn.Text = buttonConfig.Title or "Button"
+			Btn.Font = Enum.Font.GothamMedium
+			Btn.TextSize = 16
+			Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+			Btn.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+			Btn.BorderSizePixel = 0
+			Btn.Parent = TabPage
+
+			Btn.MouseButton1Click:Connect(function()
+				if buttonConfig.Callback then
+					buttonConfig.Callback()
+				end
+			end)
+		end
+
+		function elements:AddToggle(id, toggleConfig)
+			local ToggleFrame = Instance.new("Frame")
+			ToggleFrame.Size = UDim2.new(1, -10, 0, 40)
+			ToggleFrame.BackgroundTransparency = 1
+			ToggleFrame.Parent = TabPage
+
+			local ToggleBtn = Instance.new("TextButton")
+			ToggleBtn.Size = UDim2.new(0, 60, 1, 0)
+			ToggleBtn.Text = toggleConfig.Default and "ON" or "OFF"
+			ToggleBtn.BackgroundColor3 = toggleConfig.Default and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(120, 120, 120)
+			ToggleBtn.TextColor3 = Color3.fromRGB(255,255,255)
+			ToggleBtn.Font = Enum.Font.Gotham
+			ToggleBtn.TextSize = 14
+			ToggleBtn.Parent = ToggleFrame
+
+			local Label = Instance.new("TextLabel")
+			Label.Size = UDim2.new(1, -70, 1, 0)
+			Label.Position = UDim2.new(0, 70, 0, 0)
+			Label.Text = toggleConfig.Title or "Toggle"
+			Label.BackgroundTransparency = 1
+			Label.Font = Enum.Font.Gotham
+			Label.TextColor3 = config.Theme == "Dark" and Color3.fromRGB(230,230,230) or Color3.fromRGB(30,30,30)
+			Label.TextSize = 14
+			Label.TextXAlignment = Enum.TextXAlignment.Left
+			Label.Parent = ToggleFrame
+
+			Options[id] = {
+				Value = toggleConfig.Default or false,
+				SetValue = function(value)
+					Options[id].Value = value
+					ToggleBtn.Text = value and "ON" or "OFF"
+					ToggleBtn.BackgroundColor3 = value and Color3.fromRGB(0,200,100) or Color3.fromRGB(120,120,120)
+				end
+			}
+
+			function Options[id]:OnChanged(callback)
+				ToggleBtn.MouseButton1Click:Connect(function()
+					Options[id].Value = not Options[id].Value
+					Options[id].SetValue(Options[id].Value)
+					callback(Options[id].Value)
+				end)
+			end
+
+			Options[id].SetValue(Options[id].Value)
+		end
+
+		return elements
+	end
+
+	return {
+		AddTab = AddTab,
+		Options = Options
+	}
+end
+
+return MoMo
